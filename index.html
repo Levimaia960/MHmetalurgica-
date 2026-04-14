@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MH Metalúrgica | Premium</title>
+    <style>
+        :root { --preto: #000; --dourado: #d4af37; --dark-grey: #111; --cinza: #222; }
+        body { margin: 0; font-family: sans-serif; background: var(--preto); color: #fff; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 15px 5%; border-bottom: 1px solid var(--cinza); position: sticky; top: 0; background: var(--preto); z-index: 100; }
+        .logo { width: 110px; cursor: pointer; }
+        .menu-btn { cursor: pointer; color: var(--dourado); font-size: 28px; }
+        .login-top-btn { cursor: pointer; color: #fff; font-size: 12px; border: 1px solid var(--dourado); padding: 5px 10px; border-radius: 4px; }
+        .user-icon { width: 30px; height: 30px; cursor: pointer; fill: var(--dourado); display: none; }
+        .cart-btn { cursor: pointer; color: var(--dourado); font-size: 24px; }
+        
+        #login-modal, #product-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 500; justify-content: center; align-items: center; }
+        .login-box { background: var(--dark-grey); padding: 30px; width: 320px; border: 1px solid var(--dourado); text-align: center; border-radius: 8px; }
+        
+        .modal-box { background: var(--dark-grey); width: 320px; border: 1px solid var(--dourado); text-align: center; border-radius: 8px; overflow: hidden; padding-bottom: 20px; }
+        .modal-box img { width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block; }
+        .modal-content-padding { padding: 0 20px; }
+
+        input { width: 100%; padding: 12px; margin: 8px 0; background: #000; border: 1px solid #333; color: #fff; box-sizing: border-box; }
+        .btn-auth { width: 100%; padding: 12px; margin-top: 10px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-wa { background: #25d366; color: white; }
+        
+        /* Ícone corrigido: tamanho fixo, não estica, centralizado */
+        .icon-wrapper { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .icon-img { width: 20px; height: 20px; object-fit: contain; }
+        
+        .cat-header { color: var(--dourado); padding: 30px 5% 10px; font-size: 18px; text-transform: uppercase; border-bottom: 1px solid var(--cinza); }
+        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--cinza); }
+        .card { background: var(--preto); cursor: pointer; padding: 10px; text-align: center; }
+        .card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; }
+        
+        #nav-sidebar, #cart-sidebar { position: fixed; top: 0; width: 280px; height: 100%; background: var(--dark-grey); z-index: 200; padding: 20px; transition: 0.3s; }
+        #nav-sidebar { left: -300px; } #nav-sidebar.active { left: 0; }
+        #cart-sidebar { right: -300px; } #cart-sidebar.active { right: 0; }
+        .cart-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #333; }
+        .close-icon { cursor: pointer; color: var(--dourado); float: right; font-size: 24px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div style="display:flex; align-items:center; gap:15px;">
+        <div class="menu-btn" onclick="document.getElementById('nav-sidebar').classList.add('active')">☰</div>
+        <div id="login-top-btn" class="login-top-btn" onclick="openLogin()">LOGIN</div>
+        <svg id="user-icon" class="user-icon" viewBox="0 0 24 24" onclick="logoutUser()"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+    </div>
+    <img src="logo.jpg" class="logo">
+    <div class="cart-btn" onclick="document.getElementById('cart-sidebar').classList.add('active')">🛒 <span id="cart-count">0</span></div>
+</header>
+
+<div id="login-modal">
+    <div class="login-box">
+        <h2 style="color:var(--dourado)">Login</h2>
+        <input type="email" id="email" placeholder="E-mail">
+        <input type="password" id="password" placeholder="Senha">
+        <button class="btn-auth" style="background:var(--dourado)" onclick="handleEmailLogin()">ENTRAR</button>
+        <button class="btn-auth" style="background:#fff; color:#000" onclick="loginGoogle()">
+            <div class="icon-wrapper"><img class="icon-img" src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"></div> GOOGLE
+        </button>
+        <p style="margin-top:20px; color:#888; font-size:12px;">Não possui cadastro? <a href="#" style="color:var(--dourado);">Criar conta</a></p>
+        <button style="background:none; border:none; color:gray; cursor:pointer; margin-top:10px" onclick="closeLogin()">Fechar</button>
+    </div>
+</div>
+
+<div id="product-modal">
+    <div class="modal-box">
+        <img id="modal-img">
+        <div class="modal-content-padding">
+            <h3 id="modal-title"></h3>
+            <p id="modal-price" style="color:var(--dourado)"></p>
+            <button class="btn-auth" style="background:var(--dourado)" onclick="addFromModal()">ADICIONAR AO CARRINHO</button>
+            <button class="btn-auth btn-wa" onclick="checkoutWA(true)">
+                <div class="icon-wrapper"><img class="icon-img" src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"></div> FINALIZAR NO WHATSAPP
+            </button>
+            <button style="background:none; border:none; color:gray; cursor:pointer; margin-top:15px" onclick="document.getElementById('product-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<div id="nav-sidebar">
+    <span class="close-icon" onclick="this.parentElement.classList.remove('active')">✕</span>
+    <h3>Categorias</h3>
+    <a onclick="buscarProdutos('Todos')" style="display:block; padding:10px; cursor:pointer;">Todos</a>
+    <a onclick="buscarProdutos('Ralos')" style="display:block; padding:10px; cursor:pointer;">Ralos</a>
+    <a onclick="buscarProdutos('Cabides')" style="display:block; padding:10px; cursor:pointer;">Cabides</a>
+    <a onclick="buscarProdutos('Papeleiras')" style="display:block; padding:10px; cursor:pointer;">Papeleiras</a>
+</div>
+
+<div id="produtos-container"></div>
+
+<div id="cart-sidebar">
+    <span class="close-icon" onclick="this.parentElement.classList.remove('active')">✕</span>
+    <h2>Carrinho</h2>
+    <div id="cart-items-list"></div>
+    <button class="btn-auth btn-wa" onclick="checkoutWA(false)">
+        <div class="icon-wrapper"><img class="icon-img" src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"></div> FINALIZAR PEDIDO
+    </button>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+    const db = getFirestore(initializeApp({ apiKey: "AIzaSyAKiSf2j1Y936_kguLIvx31Odvo9WiJSHA", projectId: "mh-metalurgica" }));
+    const auth = getAuth();
+    let cart = [], currentProd = {};
+    const WHATSAPP_NUMBER = "5519989633460";
+
+    window.openLogin = () => document.getElementById('login-modal').style.display = 'flex';
+    window.closeLogin = () => document.getElementById('login-modal').style.display = 'none';
+    window.logoutUser = () => { signOut(auth).then(() => location.reload()); };
+    window.loginGoogle = async () => { try { await signInWithPopup(auth, new GoogleAuthProvider()); closeLogin(); } catch(e) { alert(e.message); } };
+    window.handleEmailLogin = async () => { try { await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value); closeLogin(); } catch(e) { alert(e.message); } };
+
+    window.openModal = (n, p, i) => {
+        currentProd = { nome: n, preco: p, img: i };
+        document.getElementById('modal-title').innerText = n;
+        document.getElementById('modal-price').innerText = "R$ " + p;
+        document.getElementById('modal-img').src = i;
+        document.getElementById('product-modal').style.display = 'flex';
+    };
+
+    window.addFromModal = () => { cart.push(currentProd); updateCart(); document.getElementById('product-modal').style.display = 'none'; };
+    
+    window.removerDoCarrinho = (index) => {
+        cart.splice(index, 1);
+        updateCart();
+    };
+
+    window.updateCart = () => {
+        const list = document.getElementById('cart-items-list');
+        document.getElementById('cart-count').innerText = cart.length;
+        list.innerHTML = cart.map((i, idx) => `
+            <div class="cart-item">
+                <img src="${i.img}" style="width:40px; height:40px; object-fit:cover;">
+                <div style="flex:1; font-size:12px;">${i.nome}<br>R$ ${i.preco}</div>
+                <button onclick="removerDoCarrinho(${idx})" style="border:none; background:red; color:#fff; cursor:pointer;">X</button>
+            </div>`).join('');
+    };
+
+    window.checkoutWA = (isSingle) => {
+        const itens = isSingle ? [currentProd] : cart;
+        if(itens.length === 0) return;
+        const msg = encodeURIComponent("Olá! Gostaria de comprar: " + itens.map(i => i.nome).join(', '));
+        window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`);
+    };
+
+    window.buscarProdutos = async (cat) => {
+        document.getElementById('nav-sidebar').classList.remove('active');
+        const snap = await getDocs(collection(db, "produtos"));
+        const container = document.getElementById('produtos-container');
+        container.innerHTML = '';
+        const grupos = {};
+        snap.forEach(doc => {
+            const p = doc.data();
+            if(cat === 'Todos' || p.categoria === cat) {
+                if(!grupos[p.categoria]) grupos[p.categoria] = [];
+                grupos[p.categoria].push(p);
+            }
+        });
+        for(let c in grupos) {
+            container.innerHTML += `<div class="cat-header">${c}</div><div class="container" id="grid-${c}"></div>`;
+            grupos[c].forEach(p => {
+                document.getElementById('grid-'+c).innerHTML += `<div class="card" onclick="openModal('${p.nome}','${p.preco}','${p.imagem}')"><img src="${p.imagem}"><h4>${p.nome}</h4><p style="color:var(--dourado)">R$ ${p.preco}</p></div>`;
+            });
+        }
+    };
+
+    onAuthStateChanged(auth, (user) => {
+        if(user) { document.getElementById('user-icon').style.display = 'block'; document.getElementById('login-top-btn').style.display = 'none'; }
+    });
+
+    buscarProdutos('Todos');
+</script>
+</body>
+</html>
