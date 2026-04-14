@@ -2,11 +2,11 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MH Metalúrgica | Premium</title>
     <style>
         :root { --preto: #000; --dourado: #d4af37; --dark-grey: #111; --cinza: #222; }
-        body { margin: 0; font-family: sans-serif; background: var(--preto); color: #fff; }
+        body { margin: 0; font-family: sans-serif; background: var(--preto); color: #fff; overflow-x: hidden; }
         header { display: flex; justify-content: space-between; align-items: center; padding: 15px 5%; border-bottom: 1px solid var(--cinza); position: sticky; top: 0; background: var(--preto); z-index: 100; }
         .logo { width: 110px; cursor: pointer; }
         .menu-btn { cursor: pointer; color: var(--dourado); font-size: 28px; }
@@ -14,10 +14,11 @@
         .user-icon { width: 30px; height: 30px; cursor: pointer; fill: var(--dourado); display: none; }
         .cart-btn { cursor: pointer; color: var(--dourado); font-size: 24px; }
         
-        #login-modal, #product-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 500; justify-content: center; align-items: center; }
-        .login-box { background: var(--dark-grey); padding: 30px; width: 320px; border: 1px solid var(--dourado); text-align: center; border-radius: 8px; }
+        /* Modal e Mobile Fix */
+        #login-modal, #product-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 500; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; }
+        .login-box, .modal-box { background: var(--dark-grey); width: 100%; max-width: 320px; border: 1px solid var(--dourado); text-align: center; border-radius: 8px; padding: 20px; box-sizing: border-box; }
+        .modal-box { padding: 0; overflow: hidden; padding-bottom: 20px; }
         
-        .modal-box { background: var(--dark-grey); width: 320px; border: 1px solid var(--dourado); text-align: center; border-radius: 8px; overflow: hidden; padding-bottom: 20px; }
         .modal-box img { width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block; }
         .modal-content-padding { padding: 0 20px; }
 
@@ -25,7 +26,6 @@
         .btn-auth { width: 100%; padding: 12px; margin-top: 10px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .btn-wa { background: #25d366; color: white; }
         
-        /* Ícone corrigido: tamanho fixo, não estica, centralizado */
         .icon-wrapper { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .icon-img { width: 20px; height: 20px; object-fit: contain; }
         
@@ -34,7 +34,7 @@
         .card { background: var(--preto); cursor: pointer; padding: 10px; text-align: center; }
         .card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; }
         
-        #nav-sidebar, #cart-sidebar { position: fixed; top: 0; width: 280px; height: 100%; background: var(--dark-grey); z-index: 200; padding: 20px; transition: 0.3s; }
+        #nav-sidebar, #cart-sidebar { position: fixed; top: 0; width: 280px; height: 100%; background: var(--dark-grey); z-index: 200; padding: 20px; transition: 0.3s; box-sizing: border-box; }
         #nav-sidebar { left: -300px; } #nav-sidebar.active { left: 0; }
         #cart-sidebar { right: -300px; } #cart-sidebar.active { right: 0; }
         .cart-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #333; }
@@ -55,15 +55,18 @@
 
 <div id="login-modal">
     <div class="login-box">
-        <h2 style="color:var(--dourado)">Login</h2>
+        <h2 id="login-title" style="color:var(--dourado)">Login</h2>
         <input type="email" id="email" placeholder="E-mail">
         <input type="password" id="password" placeholder="Senha">
-        <button class="btn-auth" style="background:var(--dourado)" onclick="handleEmailLogin()">ENTRAR</button>
+        <button class="btn-auth" style="background:var(--dourado)" onclick="handleAuth()">ENTRAR</button>
         <button class="btn-auth" style="background:#fff; color:#000" onclick="loginGoogle()">
             <div class="icon-wrapper"><img class="icon-img" src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"></div> GOOGLE
         </button>
-        <p style="margin-top:20px; color:#888; font-size:12px;">Não possui cadastro? <a href="#" style="color:var(--dourado);">Criar conta</a></p>
-        <button style="background:none; border:none; color:gray; cursor:pointer; margin-top:10px" onclick="closeLogin()">Fechar</button>
+        <p style="margin-top:20px; color:#888; font-size:12px;">
+            <span id="auth-text">Não possui cadastro?</span> 
+            <a href="#" id="toggle-auth" onclick="toggleAuth()" style="color:var(--dourado);">Criar conta</a>
+        </p>
+        <button style="background:none; border:none; color:gray; cursor:pointer;" onclick="closeLogin()">Fechar</button>
     </div>
 </div>
 
@@ -104,19 +107,43 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-    const db = getFirestore(initializeApp({ apiKey: "AIzaSyAKiSf2j1Y936_kguLIvx31Odvo9WiJSHA", projectId: "mh-metalurgica" }));
+    // Adicionado authDomain para corrigir o erro de configuração
+    const firebaseConfig = { 
+        apiKey: "AIzaSyAKiSf2j1Y936_kguLIvx31Odvo9WiJSHA", 
+        authDomain: "mh-metalurgica.firebaseapp.com",
+        projectId: "mh-metalurgica" 
+    };
+    
+    const db = getFirestore(initializeApp(firebaseConfig));
     const auth = getAuth();
-    let cart = [], currentProd = {};
+    let cart = [], currentProd = {}, isRegistering = false;
     const WHATSAPP_NUMBER = "5519989633460";
 
     window.openLogin = () => document.getElementById('login-modal').style.display = 'flex';
     window.closeLogin = () => document.getElementById('login-modal').style.display = 'none';
     window.logoutUser = () => { signOut(auth).then(() => location.reload()); };
+    
+    window.toggleAuth = () => {
+        isRegistering = !isRegistering;
+        document.getElementById('login-title').innerText = isRegistering ? "Criar Conta" : "Login";
+        document.getElementById('auth-text').innerText = isRegistering ? "Já possui conta?" : "Não possui cadastro?";
+        document.getElementById('toggle-auth').innerText = isRegistering ? "Entrar" : "Criar conta";
+    };
+
+    window.handleAuth = async () => {
+        const email = document.getElementById('email').value;
+        const pass = document.getElementById('password').value;
+        try {
+            if(isRegistering) await createUserWithEmailAndPassword(auth, email, pass);
+            else await signInWithEmailAndPassword(auth, email, pass);
+            closeLogin();
+        } catch(e) { alert(e.message); }
+    };
+
     window.loginGoogle = async () => { try { await signInWithPopup(auth, new GoogleAuthProvider()); closeLogin(); } catch(e) { alert(e.message); } };
-    window.handleEmailLogin = async () => { try { await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value); closeLogin(); } catch(e) { alert(e.message); } };
 
     window.openModal = (n, p, i) => {
         currentProd = { nome: n, preco: p, img: i };
@@ -127,11 +154,7 @@
     };
 
     window.addFromModal = () => { cart.push(currentProd); updateCart(); document.getElementById('product-modal').style.display = 'none'; };
-    
-    window.removerDoCarrinho = (index) => {
-        cart.splice(index, 1);
-        updateCart();
-    };
+    window.removerDoCarrinho = (idx) => { cart.splice(idx, 1); updateCart(); };
 
     window.updateCart = () => {
         const list = document.getElementById('cart-items-list');
