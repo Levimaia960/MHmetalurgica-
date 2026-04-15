@@ -12,9 +12,7 @@
         .menu-btn { cursor: pointer; color: var(--dourado); font-size: 28px; }
         .login-top-btn { cursor: pointer; color: #fff; font-size: 12px; border: 1px solid var(--dourado); padding: 5px 10px; border-radius: 4px; }
         
-        /* Estilo da Foto de Perfil */
         .user-photo { width: 35px; height: 35px; cursor: pointer; border-radius: 50%; border: 2px solid var(--dourado); display: none; object-fit: cover; }
-        
         .cart-btn { cursor: pointer; color: var(--dourado); font-size: 24px; }
         
         #login-modal, #product-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 500; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; }
@@ -22,25 +20,33 @@
         .modal-box { padding: 0; overflow: hidden; padding-bottom: 20px; }
         
         .modal-box img { width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block; }
-        .modal-content-padding { padding: 0 20px; }
+        .modal-content-padding { padding: 0 20px; color: #fff; }
 
         input { width: 100%; padding: 12px; margin: 8px 0; background: #000; border: 1px solid #333; color: #fff; box-sizing: border-box; }
-        .btn-auth { width: 100%; padding: 12px; margin-top: 10px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .btn-wa { background: #25d366; color: white; }
+        .btn-auth { width: 100%; padding: 12px; margin-top: 10px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 50px; color: #fff; }
+        .btn-wa { background: #25d366; color: #fff; }
         
         .icon-wrapper { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .icon-img { width: 20px; height: 20px; object-fit: contain; }
         
         .cat-header { color: var(--dourado); padding: 30px 5% 10px; font-size: 18px; text-transform: uppercase; border-bottom: 1px solid var(--cinza); }
         .container { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--cinza); }
-        .card { background: var(--preto); cursor: pointer; padding: 10px; text-align: center; }
+        .card { background: var(--preto); cursor: pointer; padding: 10px; text-align: center; color: #fff; }
         .card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; }
+        .card p { color: #fff !important; font-weight: bold; } /* Preço Branco e Negrito no Card */
         
-        #nav-sidebar, #cart-sidebar { position: fixed; top: 0; width: 280px; height: 100%; background: var(--dark-grey); z-index: 200; padding: 20px; transition: 0.3s; box-sizing: border-box; }
+        #nav-sidebar, #cart-sidebar { position: fixed; top: 0; width: 280px; height: 100%; background: var(--dark-grey); z-index: 200; padding: 20px; transition: 0.3s; box-sizing: border-box; color: #fff; }
         #nav-sidebar { left: -300px; } #nav-sidebar.active { left: 0; }
         #cart-sidebar { right: -300px; } #cart-sidebar.active { right: 0; }
         .cart-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #333; }
         .close-icon { cursor: pointer; color: var(--dourado); float: right; font-size: 24px; }
+        
+        /* Controles de Quantidade */
+        .qty-controls { display: flex; align-items: center; gap: 10px; justify-content: center; margin: 15px 0; }
+        .qty-btn { background: var(--dourado); border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-weight: bold; }
+        
+        /* Preços no modal e carrinho */
+        #modal-price, .item-price { color: #fff !important; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -77,7 +83,12 @@
         <img id="modal-img">
         <div class="modal-content-padding">
             <h3 id="modal-title"></h3>
-            <p id="modal-price" style="color:var(--dourado)"></p>
+            <p id="modal-price"></p>
+            <div class="qty-controls">
+                <button class="qty-btn" onclick="adjustQty(-1)">-</button>
+                <span id="modal-qty">1</span>
+                <button class="qty-btn" onclick="adjustQty(1)">+</button>
+            </div>
             <button class="btn-auth" style="background:var(--dourado)" onclick="addFromModal()">ADICIONAR AO CARRINHO</button>
             <button class="btn-auth btn-wa" onclick="checkoutWA(true)">
                 <div class="icon-wrapper"><img class="icon-img" src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"></div> FINALIZAR NO WHATSAPP
@@ -94,6 +105,7 @@
     <a onclick="buscarProdutos('Ralos')" style="display:block; padding:10px; cursor:pointer;">Ralos</a>
     <a onclick="buscarProdutos('Cabides')" style="display:block; padding:10px; cursor:pointer;">Cabides</a>
     <a onclick="buscarProdutos('Papeleiras')" style="display:block; padding:10px; cursor:pointer;">Papeleiras</a>
+    <a onclick="buscarProdutos('Porta Shampoo')" style="display:block; padding:10px; cursor:pointer;">Porta Shampoo</a>
 </div>
 
 <div id="produtos-container"></div>
@@ -112,18 +124,12 @@
     import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-    const firebaseConfig = { 
-        apiKey: "AIzaSyAKiSf2j1Y936_kguLIvx31Odvo9WiJSHA", 
-        authDomain: "mh-metalurgica.firebaseapp.com",
-        projectId: "mh-metalurgica" 
-    };
-    
+    const firebaseConfig = { apiKey: "AIzaSyAKiSf2j1Y936_kguLIvx31Odvo9WiJSHA", authDomain: "mh-metalurgica.firebaseapp.com", projectId: "mh-metalurgica" };
     const db = getFirestore(initializeApp(firebaseConfig));
     const auth = getAuth();
-    let cart = [], currentProd = {}, isRegistering = false;
+    let cart = [], currentProd = {}, isRegistering = false, currentQty = 1;
     const WHATSAPP_NUMBER = "5519989633460";
 
-    // ... (funções auxiliares mantidas)
     window.openLogin = () => document.getElementById('login-modal').style.display = 'flex';
     window.closeLogin = () => document.getElementById('login-modal').style.display = 'none';
     window.logoutUser = () => { signOut(auth).then(() => location.reload()); };
@@ -136,32 +142,48 @@
     window.handleAuth = async () => {
         const email = document.getElementById('email').value;
         const pass = document.getElementById('password').value;
-        try {
-            if(isRegistering) await createUserWithEmailAndPassword(auth, email, pass);
-            else await signInWithEmailAndPassword(auth, email, pass);
-            closeLogin();
-        } catch(e) { alert(e.message); }
+        try { if(isRegistering) await createUserWithEmailAndPassword(auth, email, pass); else await signInWithEmailAndPassword(auth, email, pass); closeLogin(); } catch(e) { alert(e.message); }
     };
     window.loginGoogle = async () => { try { await signInWithPopup(auth, new GoogleAuthProvider()); closeLogin(); } catch(e) { alert(e.message); } };
-    window.openModal = (n, p, i) => { currentProd = { nome: n, preco: p, img: i }; document.getElementById('modal-title').innerText = n; document.getElementById('modal-price').innerText = "R$ " + p; document.getElementById('modal-img').src = i; document.getElementById('product-modal').style.display = 'flex'; };
-    window.addFromModal = () => { cart.push(currentProd); updateCart(); document.getElementById('product-modal').style.display = 'none'; };
+    
+    window.adjustQty = (val) => { currentQty = Math.max(1, currentQty + val); document.getElementById('modal-qty').innerText = currentQty; };
+    
+    window.openModal = (n, p, i) => { 
+        currentQty = 1;
+        document.getElementById('modal-qty').innerText = 1;
+        currentProd = { nome: n, preco: p, img: i }; 
+        document.getElementById('modal-title').innerText = n; 
+        document.getElementById('modal-price').innerText = "R$ " + p; 
+        document.getElementById('modal-img').src = i; 
+        document.getElementById('product-modal').style.display = 'flex'; 
+    };
+    
+    window.addFromModal = () => { 
+        cart.push({...currentProd, qtd: currentQty}); 
+        updateCart(); 
+        document.getElementById('product-modal').style.display = 'none'; 
+    };
+    
     window.removerDoCarrinho = (idx) => { cart.splice(idx, 1); updateCart(); };
+    
     window.updateCart = () => {
         const list = document.getElementById('cart-items-list');
         document.getElementById('cart-count').innerText = cart.length;
         list.innerHTML = cart.map((i, idx) => `
             <div class="cart-item">
                 <img src="${i.img}" style="width:40px; height:40px; object-fit:cover;">
-                <div style="flex:1; font-size:12px;">${i.nome}<br>R$ ${i.preco}</div>
-                <button onclick="removerDoCarrinho(${idx})" style="border:none; background:red; color:#fff; cursor:pointer;">X</button>
+                <div style="flex:1; font-size:12px;">${i.nome}<br>Qtd: ${i.qtd}<br><span class="item-price">R$ ${i.preco}</span></div>
+                <button onclick="removerDoCarrinho(${idx})" style="border:none; background:red; color:#fff; cursor:pointer; border-radius:50%; width:25px; height:25px;">X</button>
             </div>`).join('');
     };
+    
     window.checkoutWA = (isSingle) => {
-        const itens = isSingle ? [currentProd] : cart;
+        const itens = isSingle ? [{...currentProd, qtd: currentQty}] : cart;
         if(itens.length === 0) return;
-        const msg = encodeURIComponent("Olá! Gostaria de comprar: " + itens.map(i => i.nome).join(', '));
+        const msg = encodeURIComponent("Olá! Gostaria de comprar: " + itens.map(i => `${i.qtd}x ${i.nome}`).join(', '));
         window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`);
     };
+    
     window.buscarProdutos = async (cat) => {
         document.getElementById('nav-sidebar').classList.remove('active');
         const snap = await getDocs(collection(db, "produtos"));
@@ -178,19 +200,13 @@
         for(let c in grupos) {
             container.innerHTML += `<div class="cat-header">${c}</div><div class="container" id="grid-${c}"></div>`;
             grupos[c].forEach(p => {
-                document.getElementById('grid-'+c).innerHTML += `<div class="card" onclick="openModal('${p.nome}','${p.preco}','${p.imagem}')"><img src="${p.imagem}"><h4>${p.nome}</h4><p style="color:var(--dourado)">R$ ${p.preco}</p></div>`;
+                document.getElementById('grid-'+c).innerHTML += `<div class="card" onclick="openModal('${p.nome}','${p.preco}','${p.imagem}')"><img src="${p.imagem}"><h4>${p.nome}</h4><p>R$ ${p.preco}</p></div>`;
             });
         }
     };
 
-    // A mágica acontece aqui:
     onAuthStateChanged(auth, (user) => {
-        if(user) { 
-            const photoEl = document.getElementById('user-photo');
-            photoEl.src = user.photoURL || 'https://via.placeholder.com/150'; // Usa foto do Google ou placeholder
-            photoEl.style.display = 'block'; 
-            document.getElementById('login-top-btn').style.display = 'none'; 
-        }
+        if(user) { const photoEl = document.getElementById('user-photo'); photoEl.src = user.photoURL || 'https://via.placeholder.com/150'; photoEl.style.display = 'block'; document.getElementById('login-top-btn').style.display = 'none'; }
     });
 
     buscarProdutos('Todos');
